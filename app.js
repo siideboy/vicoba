@@ -29,12 +29,14 @@ async function boot(){const{data:{session}}=await sb.auth.getSession();if(!sessi
 const{data:p,error:pe}=await sb.from("profiles").select("*").eq("id",session.user.id).single();if(!p)return authView("Could not load your profile: "+(pe?pe.message:"not found"));
 me=p;S=(await sb.from("settings").select("*").single()).data||{};await load();shell();live()}
 async function load(){const q=(t,o)=>sb.from(t).select(o||"*");
-const r=await Promise.all([sb.rpc("group_totals"),q("loans","*,profiles(full_name)").order("id",{ascending:false}),q("transactions","*,profiles(full_name)").order("id",{ascending:false}).limit(300),q("announcements").order("id",{ascending:false}).limit(10),q("notifications").order("id",{ascending:false}).limit(40),q("member_balances")]);
-D={tot:r[0].data||{},loans:r[1].data||[],tx:r[2].data||[],ann:r[3].data||[],inb:r[4].data||[],bal:r[5].data||[]};
+const r=await Promise.all([sb.rpc("group_totals"),q("loans").order("id",{ascending:false}),q("transactions").order("id",{ascending:false}).limit(300),q("announcements").order("id",{ascending:false}).limit(10),q("notifications").order("id",{ascending:false}).limit(40),q("member_balances")]);
+D={tot:r[0].data||{},loans:r[1].data||[],tx:r[2].data||[],ann:r[3].data||[],inb:r[4].data||[],bal:r[5].data||[]};D.err=r.map(x=>x.error?x.error.message:"").filter(Boolean).join(" | ");
 if(me.role!=="member")D.people=(await q("profiles").order("full_name")).data||[];
+const nm=id=>((D.people||[]).find(p=>p.id===id)||{}).full_name||(id===me.id?me.full_name:"");
+D.loans.forEach(l=>l.profiles={full_name:nm(l.member_id)});D.tx.forEach(t=>t.profiles={full_name:nm(t.member_id)});
 if(["admin","chairman"].includes(me.role))D.audit=(await q("audit_logs").order("id",{ascending:false}).limit(100)).data||[]}
 function shell(){const u=D.inb.filter(n=>!n.read).length;
-app.innerHTML=`<header><h1>THE <b>BILLIONAIRE</b> VICOBA</h1><div class="row" style="margin:0"><span class="tag">${esc(me.full_name)} - ${me.role}</span><button onclick="theme()">Theme</button><button onclick="out()">Sign out</button></div></header><nav>${T[me.role].map(t=>`<button class="${t==tab?"on":""}" onclick="go('${t}')">${t}${t=="Inbox"&&u?" ("+u+")":""}</button>`).join("")}</nav><main>${V[tab]()}</main>`}
+app.innerHTML=`<header><h1>THE <b>BILLIONAIRE</b> VICOBA</h1><div class="row" style="margin:0"><span class="tag">${esc(me.full_name)} - ${me.role}</span><button onclick="theme()">Theme</button><button onclick="out()">Sign out</button></div></header><nav>${T[me.role].map(t=>`<button class="${t==tab?"on":""}" onclick="go('${t}')">${t}${t=="Inbox"&&u?" ("+u+")":""}</button>`).join("")}</nav><main>${D.err?`<div class="card err">Data error: ${esc(D.err)}</div>`:""}${V[tab]()}</main>`}
 const go=t=>{tab=t;shell()},refresh=async()=>{await load();shell()},busy=()=>/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
 function live(){if(liveOn)return;liveOn=1;const f=()=>busy()?load():refresh();let c=sb.channel("vic");["transactions","notifications","announcements","loans"].forEach(t=>c=c.on("postgres_changes",{event:"*",schema:"public",table:t},f));c.subscribe()}
 const risk=l=>{const b=D.bal.find(m=>m.id===l.member_id),c=b?(N(b.shares)+N(b.savings))/l.principal:0;return c>=1?"Low":c>=.5?"Medium":"High"};
