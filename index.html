@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.json"><meta name="theme-color" content="#0d7a5f">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Vicoba">
+<link rel="apple-touch-icon" href="icon-192.png"><link rel="icon" href="icon.svg">
+<title>THE BILLIONAIRE VICOBA</title>
+<style>
+:root{--bg:#f3f5f2;--card:rgba(255,255,255,.75);--ink:#10221c;--mute:#5d6f68;--line:#d9e0dc;--acc:#0d7a5f;--gold:#b8892b;--bad:#b3392f;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0b1512;--card:rgba(255,255,255,.06);--ink:#e8f1ed;--mute:#8fa39b;--line:#22352e;--acc:#35d0a0;--gold:#e0b04f;--bad:#ff7a6e}}
+:root[data-theme=dark]{--bg:#0b1512;--card:rgba(255,255,255,.06);--ink:#e8f1ed;--mute:#8fa39b;--line:#22352e;--acc:#35d0a0;--gold:#e0b04f;--bad:#ff7a6e}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Segoe UI",system-ui,sans-serif}
+header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line)}
+h1{font:700 18px Georgia,serif;margin:0}h1 b{color:var(--gold)}
+select,button,input,textarea{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 12px}
+button{cursor:pointer}button.p{background:var(--acc);color:#fff;border:0;font-weight:600}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+nav{display:flex;gap:6px;overflow-x:auto;padding:10px 18px}nav button.on{background:var(--ink);color:var(--bg)}
+main{max-width:1000px;margin:auto;padding:8px 18px 60px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.card{background:var(--card);backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+.k{color:var(--mute);font-size:12px}.v{font:700 22px Georgia,serif}.hero .v{font-size:38px;color:var(--gold)}
+table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:7px 6px;border-bottom:1px solid var(--line);text-align:left}
+.wrap{overflow-x:auto}textarea{width:100%;min-height:110px}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.row input{flex:1;min-width:120px}
+.ok{color:var(--acc)}.err{color:var(--bad)}.tag{display:inline-block;padding:2px 8px;border-radius:99px;border:1px solid var(--line);font-size:12px}
+.auth{max-width:380px;margin:12vh auto}.auth input{display:block;width:100%;margin:6px 0}
+svg text{fill:var(--mute);font-size:10px}
+</style></head><body>
+<div id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script><script src="app.js"></script>
+<script>if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))</script>
+</body></html>
