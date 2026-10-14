@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>THE BILLIONAIRE VICOBA</title>
+<style>
+:root{--bg:#f3f5f2;--card:rgba(255,255,255,.75);--ink:#10221c;--mute:#5d6f68;--line:#d9e0dc;--acc:#0d7a5f;--gold:#b8892b;--bad:#b3392f;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0b1512;--card:rgba(255,255,255,.06);--ink:#e8f1ed;--mute:#8fa39b;--line:#22352e;--acc:#35d0a0;--gold:#e0b04f;--bad:#ff7a6e}}
+:root[data-theme=dark]{--bg:#0b1512;--card:rgba(255,255,255,.06);--ink:#e8f1ed;--mute:#8fa39b;--line:#22352e;--acc:#35d0a0;--gold:#e0b04f;--bad:#ff7a6e}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Segoe UI",system-ui,sans-serif}
+header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line)}
+h1{font:700 18px Georgia,serif;margin:0;letter-spacing:.3px}h1 b{color:var(--gold)}
+select,button,input,textarea{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 12px}
+button{cursor:pointer}button.p{background:var(--acc);color:#fff;border:0;font-weight:600}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+nav{display:flex;gap:6px;overflow-x:auto;padding:10px 18px}nav button.on{background:var(--ink);color:var(--bg)}
+main{max-width:1000px;margin:auto;padding:8px 18px 60px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.card{background:var(--card);backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+.k{color:var(--mute);font-size:12px}.v{font:700 22px Georgia,serif}
+.hero .v{font-size:38px;color:var(--gold)}
+table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:7px 6px;border-bottom:1px solid var(--line);text-align:left}
+.wrap{overflow-x:auto}textarea{width:100%;min-height:110px}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.ok{color:var(--acc)}.err{color:var(--bad)}
+.tag{display:inline-block;padding:2px 8px;border-radius:99px;border:1px solid var(--line);font-size:12px}
+svg text{fill:var(--mute);font-size:10px}
+</style></head><body>
+<header><h1>THE <b>BILLIONAIRE</b> VICOBA</h1>
+<div class="row" style="margin:0"><select id="role" aria-label="Role"><option>Member</option><option>Accountant</option><option>Secretary</option><option>Chairman</option><option>Administrator</option></select>
+<button id="th">Dark / Light</button></div></header>
+<nav id="nav"></nav><main id="v"></main>
+<script>
+const fmt=n=>"TZS "+Math.round(n).toLocaleString();
+const KEY="bv_state_v1";
+const seed={members:[{id:1,name:"SAID JUMA",shares:400000,savings:250000},{id:2,name:"ZAYNAB SAID",shares:300000,savings:180000},{id:3,name:"JOHN MREMA",shares:500000,savings:320000},{id:4,name:"AMINA HASSAN",shares:250000,savings:90000},{id:5,name:"PETER MSAKI",shares:350000,savings:140000}],
+loans:[{id:1,member:3,amount:600000,rate:5,months:6,paid:200000,late:0},{id:2,member:4,amount:300000,rate:5,months:4,paid:50000,late:12}],
+ledger:[{ref:"SEED0001",date:"01/09/2026",who:"JOHN MREMA",type:"Shares",amt:100000,net:"M-Pesa"}],notes:["Monthly meeting: Saturday 10:00","Share price this cycle: TZS 50,000"]};
+let S;try{S=JSON.parse(localStorage.getItem(KEY))||seed}catch(e){S=seed}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const tabs={Member:["Dashboard","Pay by SMS","Loans","Ledger"],Accountant:["Dashboard","Pay by SMS","Loans","Ledger","Broadcast"],Secretary:["Dashboard","Loans","Broadcast"],Chairman:["Dashboard","Loans","Ledger"],Administrator:["Dashboard","Pay by SMS","Loans","Ledger","Broadcast","Admin"]};
+let tab="Dashboard",last=null;
+const tot=()=>{const sh=S.members.reduce((a,m)=>a+m.shares,0),sv=S.members.reduce((a,m)=>a+m.savings,0),out=S.loans.reduce((a,l)=>a+l.amount,0),rec=S.loans.reduce((a,l)=>a+l.paid,0);return{sh,sv,out,rec,cap:sh+sv,cash:sh+sv-out+rec}};
+function parse(t){const T=t.replace(/\s+/g," ").trim();const low=T.toLowerCase();
+const net=/m-?pesa|vodacom/.test(low)?"M-Pesa":/airtel/.test(low)?"Airtel Money":/mixx|yas|tigo/.test(low)?"Mixx by Yas":/halo/.test(low)?"HaloPesa":"Unknown";
+const ref=(T.match(/(?:trans(?:action)?\s*id|txn\s*id|ref(?:erence)?)[:\s#]*([A-Z0-9][A-Z0-9.\-]{5,})/i)||T.match(/^([A-Z0-9]{8,12})\b/)||[])[1];
+const amt=(T.match(/(?:tsh|tzs)\.?\s?([\d,]+(?:\.\d+)?)/i)||[])[1];
+const name=(T.match(/from\s+([A-Za-z][A-Za-z .'-]+?)(?=\s+(?:\d|on\b|at\b|kwa\b)|[.,]|$)/i)||[])[1];
+const date=(T.match(/(\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4})/)||[])[1];
+const time=(T.match(/(\d{1,2}:\d{2}(?::\d{2})?\s?(?:[AP]M)?)/i)||[])[1];
+return{net,ref,amount:amt?parseFloat(amt.replace(/,/g,"")):null,name:name&&name.trim().toUpperCase(),date,time}}
+function match(n){if(!n)return null;const w=n.split(" ");let best=null,sc=0;S.members.forEach(m=>{const s=w.filter(x=>m.name.includes(x)).length;if(s>sc){sc=s;best=m}});return sc?best:null}
+function schedule(a,r,n){const out=[];let bal=a;const p=a/n;for(let i=1;i<=n;i++){const int=bal*r/100;out.push({i,princ:p,int,total:p+int,bal:bal-p});bal-=p}return out}
+function risk(l){const m=S.members.find(x=>x.id===l.member);const cover=(m.shares+m.savings)/l.amount;let s=50-Math.min(cover,2)*15+l.late*1.5+(l.months>6?10:0);s=Math.max(0,Math.min(100,s));return s<30?["Low","ok"]:s<55?["Medium",""]:["High","err"]}
+function bars(){const v=[38,44,51,60,72,85];const mx=90;return `<svg viewBox="0 0 300 110" width="100%" role="img" aria-label="Capital growth chart">${v.map((x,i)=>`<rect x="${20+i*45}" y="${95-x}" width="28" height="${x}" rx="5" fill="var(--acc)" opacity="${.45+i*.1}"/><text x="${20+i*45}" y="106">${["Apr","May","Jun","Jul","Aug","Sep"][i]}</text>`).join("")}</svg>`}
+const V={
+Dashboard(){const t=tot();return `<div class="card hero"><div class="k">Total group capital (live)</div><div class="v">${fmt(t.cap)}</div><span class="tag">+${(t.cap/1e6*1.9).toFixed(1)}% this cycle</span></div>
+<div class="grid">${[["Total shares",t.sh],["Total savings",t.sv],["Active loans",t.out],["Recovered",t.rec],["Cash available",t.cash],["Monthly profit",t.out*.05]].map(x=>`<div class="card"><div class="k">${x[0]}</div><div class="v">${fmt(x[1])}</div></div>`).join("")}</div>
+<div class="card"><div class="k">Capital growth</div>${bars()}</div>
+<div class="card"><b>Announcements</b>${S.notes.map(n=>`<div>• ${n}</div>`).join("")}</div>
+<div class="card"><b>Members</b><div class="wrap"><table><tr><th>Name<th>Shares<th>Savings${S.members.map(m=>`<tr><td>${m.name}<td>${fmt(m.shares)}<td>${fmt(m.savings)}`).join("")}</table></div></div>`},
+"Pay by SMS"(){const l=last;return `<div class="card"><b>Paste a mobile money SMS</b><p class="k">Works with M-Pesa, Airtel Money, Mixx by Yas and HaloPesa. Duplicates are rejected by reference.</p>
+<textarea id="sms" placeholder="UCA1B2C3D4 Confirmed. Tsh50,000.00 received from JOHN MREMA 0755123456 on 12/9/2026 at 2:15 PM."></textarea>
+<div class="row"><select id="alloc"><option>Shares</option><option>Savings</option></select><button class="p" id="go">Verify and post</button><button id="ex">Use sample</button></div>
+<div id="res">${l||""}</div></div>`},
+Loans(){const rows=S.loans.map(l=>{const m=S.members.find(x=>x.id===l.member),tot=l.amount*(1+l.rate/100*l.months),pen=l.late*l.amount*.001,r=risk(l);return `<tr><td>${m.name}<td>${fmt(l.amount)}<td>${fmt(tot-l.paid+pen)}<td>${l.late?l.late+"d, "+fmt(pen):"On time"}<td class="${r[1]}">${r[0]}`}).join("");
+return `<div class="card"><b>Active loans</b><div class="wrap"><table><tr><th>Member<th>Principal<th>Balance<th>Penalty<th>Risk${rows}</table></div></div>
+<div class="card"><b>Loan calculator</b><div class="row"><input id="la" type="number" value="500000" aria-label="Amount"><input id="lm" type="number" value="6" aria-label="Months"><input id="lr" type="number" value="5" aria-label="Monthly rate %"><button class="p" id="lc">Build schedule</button></div><div id="ls" class="wrap"></div></div>`},
+Ledger(){return `<div class="card"><b>General ledger</b><div class="wrap"><table><tr><th>Ref<th>Date<th>Member<th>Type<th>Amount<th>Network${S.ledger.map(e=>`<tr><td>${e.ref}<td>${e.date}<td>${e.who}<td>${e.type}<td>${fmt(e.amt)}<td>${e.net}`).join("")}</table></div><div class="row"><button id="csv">Export CSV</button><button id="pdf">Print / PDF</button></div></div>`},
+Broadcast(){return `<div class="card"><b>Communication center</b><div class="row"><select id="aud"><option>All members</option><option>Loan defaulters</option></select></div><textarea id="msg" placeholder="Write a message"></textarea><div class="row"><button class="p" id="send">Queue message</button></div><div id="bo" class="k"></div></div>`},
+Admin(){return `<div class="card"><b>Group rules</b><p class="k">Set in Supabase group_settings in the full build.</p><div class="row"><span class="tag">Share price: TZS 50,000</span><span class="tag">Loan rate: 5% monthly</span><span class="tag">Penalty: 0.1% per day</span><span class="tag">2FA: required for staff</span></div></div><div class="card"><button id="rs">Reset demo data</button></div>`}};
+function render(){const r=document.getElementById("role").value;if(!tabs[r].includes(tab))tab="Dashboard";
+nav.innerHTML=tabs[r].map(t=>`<button class="${t==tab?"on":""}" data-t="${t}">${t}</button>`).join("");v.innerHTML=V[tab]();bind()}
+function bind(){const $=id=>document.getElementById(id);
+$("go")&&($("go").onclick=()=>{const p=parse($("sms").value),b=[];
+if(!p.amount||!p.ref){$("res").innerHTML=`<p class="err">Could not read amount or reference. Check that you pasted the full SMS.</p>`;return}
+if(S.ledger.some(e=>e.ref===p.ref)){$("res").innerHTML=`<p class="err">Duplicate: reference ${p.ref} is already posted.</p>`;return}
+const m=match(p.name);if(!m){$("res").innerHTML=`<p class="err">No member matches "${p.name||"unknown"}". Send to the accountant for manual review.</p>`;return}
+const ty=$("alloc").value;m[ty.toLowerCase()]+=p.amount;S.ledger.unshift({ref:p.ref,date:p.date||new Date().toLocaleDateString(),who:m.name,type:ty,amt:p.amount,net:p.net});save();
+last=`<div class="card"><b class="ok">Payment posted. Receipt</b><table><tr><td>Payer<td>${p.name}<tr><td>Member<td>${m.name}<tr><td>Amount<td>${fmt(p.amount)}<tr><td>Reference<td>${p.ref}<tr><td>Date and time<td>${p.date||"-"} ${p.time||""}<tr><td>Network<td>${p.net}<tr><td>Credited to<td>${ty}</table></div>`;render()});
+$("ex")&&($("ex").onclick=()=>{$("sms").value="UCA"+Math.random().toString(36).slice(2,9).toUpperCase()+" Confirmed. Tsh50,000.00 received from ZAYNAB SAID 0755123456 on 29/9/2026 at 2:15 PM. New M-Pesa balance is Tsh120,000."});
+$("lc")&&($("lc").onclick=()=>{const s=schedule(+$("la").value,+$("lr").value,+$("lm").value);$("ls").innerHTML=`<table><tr><th>#<th>Principal<th>Interest<th>Installment<th>Balance${s.map(x=>`<tr><td>${x.i}<td>${fmt(x.princ)}<td>${fmt(x.int)}<td>${fmt(x.total)}<td>${fmt(x.bal)}`).join("")}</table>`});
+$("csv")&&($("csv").onclick=()=>{const c="ref,date,member,type,amount,network\n"+S.ledger.map(e=>[e.ref,e.date,e.who,e.type,e.amt,e.net].join(",")).join("\n");const a=document.createElement("a");a.href="data:text/csv,"+encodeURIComponent(c);a.download="ledger.csv";a.click()});
+$("pdf")&&($("pdf").onclick=()=>window.print());
+$("send")&&($("send").onclick=()=>{$("bo").textContent=`Queued for ${$("aud").value}: "${$("msg").value}". Connect an SMS gateway in the full build to deliver.`});
+$("rs")&&($("rs").onclick=()=>{S=JSON.parse(JSON.stringify(seed));save();render()})}
+nav.onclick=e=>{if(e.target.dataset.t){tab=e.target.dataset.t;render()}};
+document.getElementById("role").onchange=render;
+document.getElementById("th").onclick=()=>{const d=document.documentElement,dark=getComputedStyle(d).getPropertyValue("--bg").trim()==="#0b1512";d.dataset.theme=dark?"light":"dark"};
+render();
+</script></body></html>

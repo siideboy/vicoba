@@ -26,22 +26,24 @@ if(error){b.disabled=false;return msg("#am",fail(error))}
 if(data.user&&data.user.identities&&!data.user.identities.length){b.disabled=false;return msg("#am","This email is already registered. Use Sign in.")}
 if(data.session)return boot();
 mode="login";authView("Account created. Confirm your email if asked, then sign in.",1)}
-async function boot(){const{data:{session}}=await sb.auth.getSession();if(!session)return authView();
-app.innerHTML='<div class="card auth"><p class="k">Loading your data...</p></div>';
-const[a,b]=await Promise.all([sb.from("profiles").select("*").eq("id",session.user.id).single(),sb.from("settings").select("*").single()]);
+async function boot(){const t0=performance.now();const{data:{session}}=await sb.auth.getSession();if(!session)return authView();
+let c=null;try{c=JSON.parse(localStorage.getItem("vic_"+session.user.id))}catch(e){}
+if(c&&c.me&&c.D&&c.D.tot){me=c.me;S=c.S||{};D=c.D;if(!T[me.role].includes(tab))tab="Dashboard";shell();live()}
+else app.innerHTML='<div class="card auth"><p class="k">Loading your data...</p></div>';
+let tid;const to=new Promise((_,j)=>{tid=setTimeout(()=>j(new Error("The server is taking too long. Check your internet and reload.")),25000)});
+let a,b,r;try{[a,b,r]=await Promise.race([Promise.all([sb.from("profiles").select("*").eq("id",session.user.id).single(),sb.from("settings").select("*").single(),fetchAll()]),to])}finally{clearTimeout(tid)}
 const p=a.data;if(!p)return authView("Could not load your profile: "+(a.error?a.error.message:"not found"));
-me=p;S=b.data||{};
-try{const c=JSON.parse(localStorage.getItem("vic_"+me.id));if(c&&c.tot&&c.tx){D=c;shell()}}catch(e){}
-await load();shell();live()}
-async function load(){const q=(t,o)=>sb.from(t).select(o||"*"),st=me.role!=="member",au=["admin","chairman"].includes(me.role);
-const r=await Promise.all([sb.rpc("group_totals"),q("loans").order("id",{ascending:false}).limit(100),q("transactions").order("id",{ascending:false}).limit(150),q("announcements").order("id",{ascending:false}).limit(10),q("notifications").order("id",{ascending:false}).limit(30),q("member_balances"),st?q("profiles").order("full_name"):null,au?q("audit_logs").order("id",{ascending:false}).limit(50):null]);
-D={tot:r[0].data||{},loans:r[1].data||[],tx:r[2].data||[],ann:r[3].data||[],inb:r[4].data||[],bal:r[5].data||[],people:r[6]?r[6].data||[]:undefined,audit:r[7]?r[7].data||[]:undefined};
+me=p;S=b.data||{};build(r);window.TM="Loaded in "+((performance.now()-t0)/1000).toFixed(1)+"s";shell();live()}
+const fetchAll=()=>{const q=(t,o)=>sb.from(t).select(o||"*");return Promise.all([sb.rpc("group_totals"),q("loans").order("id",{ascending:false}).limit(100),q("transactions").order("id",{ascending:false}).limit(150),q("announcements").order("id",{ascending:false}).limit(10),q("notifications").order("id",{ascending:false}).limit(30),q("member_balances"),q("profiles").order("full_name"),q("audit_logs").order("id",{ascending:false}).limit(50)])};
+function build(r){const st=me.role!=="member",au=["admin","chairman"].includes(me.role);
+D={tot:r[0].data||{},loans:r[1].data||[],tx:r[2].data||[],ann:r[3].data||[],inb:r[4].data||[],bal:r[5].data||[],people:st?r[6].data||[]:undefined,audit:au?r[7].data||[]:undefined};
 D.err=r.map(x=>x&&x.error?x.error.message:"").filter(Boolean).join(" | ");
 const nm=id=>((D.people||[]).find(p=>p.id===id)||{}).full_name||(id===me.id?me.full_name:"");
 D.loans.forEach(l=>l.profiles={full_name:nm(l.member_id)});D.tx.forEach(t=>t.profiles={full_name:nm(t.member_id)});
-if(!D.err)try{localStorage.setItem("vic_"+me.id,JSON.stringify(D))}catch(e){}}
+if(!D.err)try{localStorage.setItem("vic_"+me.id,JSON.stringify({me,S,D}))}catch(e){}}
+async function load(){build(await fetchAll())}
 function shell(){const u=D.inb.filter(n=>!n.read).length;
-app.innerHTML=`<header><h1>THE <b>BILLIONAIRE</b> VICOBA</h1><div class="row" style="margin:0"><span class="tag">${esc(me.full_name)} - ${me.role}</span><button onclick="theme()">Theme</button><button onclick="out()">Sign out</button></div></header><nav>${T[me.role].map(t=>`<button class="${t==tab?"on":""}" onclick="go('${t}')">${t}${t=="Inbox"&&u?" ("+u+")":""}</button>`).join("")}</nav><main>${D.err?`<div class="card err">Data error: ${esc(D.err)}</div>`:""}${V[tab]()}</main>`}
+app.innerHTML=`<header><h1>THE <b>BILLIONAIRE</b> VICOBA</h1><div class="row" style="margin:0"><span class="tag">${esc(me.full_name)} - ${me.role}</span><button onclick="theme()">Theme</button><button onclick="out()">Sign out</button></div></header><nav>${T[me.role].map(t=>`<button class="${t==tab?"on":""}" onclick="go('${t}')">${t}${t=="Inbox"&&u?" ("+u+")":""}</button>`).join("")}</nav><main>${D.err?`<div class="card err">Data error: ${esc(D.err)}</div>`:""}${V[tab]()}<p class="k" style="text-align:center">${esc(window.TM||"")}</p></main>`}
 const go=t=>{tab=t;shell()},refresh=async()=>{await load();shell()},busy=()=>/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
 function live(){if(liveOn)return;liveOn=1;let tm;const f=()=>{clearTimeout(tm);tm=setTimeout(()=>busy()?load():refresh(),800)};let c=sb.channel("vic");["transactions","notifications","announcements","loans"].forEach(t=>c=c.on("postgres_changes",{event:"*",schema:"public",table:t},f));c.subscribe()}
 const risk=l=>{const b=D.bal.find(m=>m.id===l.member_id),c=b?(N(b.shares)+N(b.savings))/l.principal:0;return c>=1?"Low":c>=.5?"Medium":"High"};
