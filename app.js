@@ -2,7 +2,6 @@ const $=s=>document.querySelector(s),N=x=>+x||0,fmt=n=>"TZS "+Math.round(N(n)).t
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const app=$("#app");
 if(!CFG.URL||!CFG.KEY){app.innerHTML='<div class="card auth"><b>Setup needed</b><p>Fill URL and KEY in config.js.</p></div>';throw new Error("config")}
-if(typeof supabase==="undefined"){app.innerHTML='<div class="card auth"><b>Could not load the app library</b><p class="k">Check your internet connection and reload the page.</p></div>';throw new Error("lib")}
 const sb=supabase.createClient(CFG.URL,CFG.KEY);
 const T={member:["Dashboard","Pay","Loans","Ledger","Inbox"],accountant:["Dashboard","Approvals","Loans","Ledger","Broadcast","Inbox"],secretary:["Dashboard","Loans","Broadcast","Inbox"],chairman:["Dashboard","Approvals","Loans","Ledger","Audit","Inbox"],admin:["Dashboard","Approvals","Loans","Ledger","Broadcast","Members","Audit","Inbox"]};
 let me,S={},D={},tab="Dashboard",liveOn=0;
@@ -26,26 +25,20 @@ if(error){b.disabled=false;return msg("#am",fail(error))}
 if(data.user&&data.user.identities&&!data.user.identities.length){b.disabled=false;return msg("#am","This email is already registered. Use Sign in.")}
 if(data.session)return boot();
 mode="login";authView("Account created. Confirm your email if asked, then sign in.",1)}
-async function boot(){const t0=performance.now();const{data:{session}}=await sb.auth.getSession();if(!session)return authView();
-let c=null;try{c=JSON.parse(localStorage.getItem("vic_"+session.user.id))}catch(e){}
-if(c&&c.me&&c.D&&c.D.tot){me=c.me;S=c.S||{};D=c.D;if(!T[me.role].includes(tab))tab="Dashboard";shell();live()}
-else app.innerHTML='<div class="card auth"><p class="k">Loading your data...</p></div>';
-let tid;const to=new Promise((_,j)=>{tid=setTimeout(()=>j(new Error("The server is taking too long. Check your internet and reload.")),25000)});
-let a,b,r;try{[a,b,r]=await Promise.race([Promise.all([sb.from("profiles").select("*").eq("id",session.user.id).single(),sb.from("settings").select("*").single(),fetchAll()]),to])}finally{clearTimeout(tid)}
-const p=a.data;if(!p)return authView("Could not load your profile: "+(a.error?a.error.message:"not found"));
-me=p;S=b.data||{};build(r);window.TM="Loaded in "+((performance.now()-t0)/1000).toFixed(1)+"s";shell();live()}
-const fetchAll=()=>{const q=(t,o)=>sb.from(t).select(o||"*");return Promise.all([sb.rpc("group_totals"),q("loans").order("id",{ascending:false}).limit(100),q("transactions").order("id",{ascending:false}).limit(150),q("announcements").order("id",{ascending:false}).limit(10),q("notifications").order("id",{ascending:false}).limit(30),q("member_balances"),q("profiles").order("full_name"),q("audit_logs").order("id",{ascending:false}).limit(50)])};
-function build(r){const st=me.role!=="member",au=["admin","chairman"].includes(me.role);
-D={tot:r[0].data||{},loans:r[1].data||[],tx:r[2].data||[],ann:r[3].data||[],inb:r[4].data||[],bal:r[5].data||[],people:st?r[6].data||[]:undefined,audit:au?r[7].data||[]:undefined};
-D.err=r.map(x=>x&&x.error?x.error.message:"").filter(Boolean).join(" | ");
+async function boot(){const{data:{session}}=await sb.auth.getSession();if(!session)return authView();
+const{data:p,error:pe}=await sb.from("profiles").select("*").eq("id",session.user.id).single();if(!p)return authView("Could not load your profile: "+(pe?pe.message:"not found"));
+me=p;S=(await sb.from("settings").select("*").single()).data||{};await load();shell();live()}
+async function load(){const q=(t,o)=>sb.from(t).select(o||"*");
+const r=await Promise.all([sb.rpc("group_totals"),q("loans").order("id",{ascending:false}),q("transactions").order("id",{ascending:false}).limit(300),q("announcements").order("id",{ascending:false}).limit(10),q("notifications").order("id",{ascending:false}).limit(40),q("member_balances")]);
+D={tot:r[0].data||{},loans:r[1].data||[],tx:r[2].data||[],ann:r[3].data||[],inb:r[4].data||[],bal:r[5].data||[]};D.err=r.map(x=>x.error?x.error.message:"").filter(Boolean).join(" | ");
+if(me.role!=="member")D.people=(await q("profiles").order("full_name")).data||[];
 const nm=id=>((D.people||[]).find(p=>p.id===id)||{}).full_name||(id===me.id?me.full_name:"");
 D.loans.forEach(l=>l.profiles={full_name:nm(l.member_id)});D.tx.forEach(t=>t.profiles={full_name:nm(t.member_id)});
-if(!D.err)try{localStorage.setItem("vic_"+me.id,JSON.stringify({me,S,D}))}catch(e){}}
-async function load(){build(await fetchAll())}
+if(["admin","chairman"].includes(me.role))D.audit=(await q("audit_logs").order("id",{ascending:false}).limit(100)).data||[]}
 function shell(){const u=D.inb.filter(n=>!n.read).length;
-app.innerHTML=`<header><h1>THE <b>BILLIONAIRE</b> VICOBA</h1><div class="row" style="margin:0"><span class="tag">${esc(me.full_name)} - ${me.role}</span><button onclick="theme()">Theme</button><button onclick="out()">Sign out</button></div></header><nav>${T[me.role].map(t=>`<button class="${t==tab?"on":""}" onclick="go('${t}')">${t}${t=="Inbox"&&u?" ("+u+")":""}</button>`).join("")}</nav><main>${D.err?`<div class="card err">Data error: ${esc(D.err)}</div>`:""}${V[tab]()}<p class="k" style="text-align:center">${esc(window.TM||"")}</p></main>`}
+app.innerHTML=`<header><h1>THE <b>BILLIONAIRE</b> VICOBA</h1><div class="row" style="margin:0"><span class="tag">${esc(me.full_name)} - ${me.role}</span><button onclick="theme()">Theme</button><button onclick="out()">Sign out</button></div></header><nav>${T[me.role].map(t=>`<button class="${t==tab?"on":""}" onclick="go('${t}')">${t}${t=="Inbox"&&u?" ("+u+")":""}</button>`).join("")}</nav><main>${D.err?`<div class="card err">Data error: ${esc(D.err)}</div>`:""}${V[tab]()}</main>`}
 const go=t=>{tab=t;shell()},refresh=async()=>{await load();shell()},busy=()=>/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
-function live(){if(liveOn)return;liveOn=1;let tm;const f=()=>{clearTimeout(tm);tm=setTimeout(()=>busy()?load():refresh(),800)};let c=sb.channel("vic");["transactions","notifications","announcements","loans"].forEach(t=>c=c.on("postgres_changes",{event:"*",schema:"public",table:t},f));c.subscribe()}
+function live(){if(liveOn)return;liveOn=1;const f=()=>busy()?load():refresh();let c=sb.channel("vic");["transactions","notifications","announcements","loans"].forEach(t=>c=c.on("postgres_changes",{event:"*",schema:"public",table:t},f));c.subscribe()}
 const risk=l=>{const b=D.bal.find(m=>m.id===l.member_id),c=b?(N(b.shares)+N(b.savings))/l.principal:0;return c>=1?"Low":c>=.5?"Medium":"High"};
 const V={
 Dashboard(){const t=D.tot,cap=N(t.shares)+N(t.savings),profit=N(t.income)-N(t.expenses),cash=cap+profit-N(t.disbursed)+N(t.recovered),my=D.bal.find(m=>m.id===me.id);
@@ -93,7 +86,5 @@ async function readAll(){await sb.from("notifications").update({read:true}).eq("
 async function setRole(id,role){const{error}=await sb.from("profiles").update({role}).eq("id",id);error?alert(error.message):refresh()}
 function csv(){const c="date,member,type,amount,reference,network\n"+D.tx.filter(t=>t.status==="posted").map(t=>[t.paid_at,t.profiles?.full_name||"Group",t.kind,t.amount,t.reference,t.network].map(x=>'"'+String(x??"").replace(/"/g,'""')+'"').join(",")).join("\n");const a=document.createElement("a");a.href="data:text/csv,"+encodeURIComponent(c);a.download="ledger.csv";a.click()}
 function theme(){const d=document.documentElement;d.dataset.theme=(d.dataset.theme||(matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light"))==="dark"?"light":"dark"}
-async function out(){try{localStorage.removeItem("vic_"+me.id)}catch(e){}await sb.auth.signOut();me=null;authView()}
-const showErr=e=>{if(app.textContent.trim()==="Loading..."||!app.innerHTML.trim())app.innerHTML='<div class="card auth"><b>Something went wrong</b><p class="err">'+esc((e&&e.message)||e)+'</p><button class="p" onclick="location.reload()">Reload</button></div>'};
-addEventListener("unhandledrejection",e=>showErr(e.reason));addEventListener("error",e=>showErr(e.error||e.message));
-boot().catch(showErr);
+async function out(){await sb.auth.signOut();me=null;authView()}
+boot();
